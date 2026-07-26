@@ -1,0 +1,25 @@
+KUI Licence
+Copyright (c) 2026 KALPE. All rights reserved.
+
+1. Grant. Free of charge, you may:
+   a) use this software and its API to build your own Minecraft mods;
+   b) redistribute it in unmodified, complete form, including bundled inside
+      your own mod as a nested JAR ("Jar-in-Jar"), provided this notice is kept
+      intact.
+
+2. Restrictions. You may not:
+   a) distribute a modified or derivative version of this software;
+   b) distribute it under another name, branding or authorship, or present it
+      as your own work;
+   c) remove or alter copyright, licence or attribution notices;
+   d) sell or license the software on its own.
+
+3. Private modification. You may modify your own copy for private use,
+   debugging, or to prepare a patch to send upstream. Modified copies may not
+   be distributed.
+
+4. Termination. Any breach terminates this licence automatically.
+
+5. No warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED. THE AUTHORS ARE NOT LIABLE FOR ANY CLAIM, DAMAGES OR
+   OTHER LIABILITY ARISING FROM IT.

@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+build/
+versions/*/build/
+versions/*/.gradle/
+
+# Stonecutter
+.stonecutter/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

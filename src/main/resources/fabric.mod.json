@@ -1,0 +1,24 @@
+{
+	"schemaVersion": 1,
+	"id": "kui",
+	"version": "${version}",
+	"name": "KUI",
+	"description": "Shared client UI library: one HUD registry, one layout editor and one theme for every KALPE mod, so their HUD elements stack instead of overlapping.",
+	"authors": [
+		"KALPE"
+	],
+	"contact": {},
+	"license": "LicenseRef-KUI",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.kui.KuiClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.16",
+		"minecraft": "${minecraft}",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

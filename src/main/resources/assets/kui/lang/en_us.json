@@ -1,0 +1,14 @@
+{
+	"key.category.kui.main": "KUI",
+	"key.kui.hud_layout": "Edit HUD layout",
+
+	"kui.layout.title": "HUD Layout",
+	"kui.layout.hint": "Drag to move  •  Scroll to resize  •  Ctrl+Scroll opacity  •  Right-click hide  •  Middle-click style",
+	"kui.layout.empty": "No mods have registered HUD elements.",
+	"kui.layout.docked": "Docked",
+	"kui.layout.free": "Free",
+	"kui.layout.done": "Done",
+	"kui.layout.reset_element": "Reset element",
+	"kui.layout.reset_all": "Reset all",
+	"kui.layout.ui_scale": "UI size"
+}
