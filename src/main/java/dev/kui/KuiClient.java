@@ -22,7 +22,7 @@ import org.lwjgl.glfw.GLFW;
 public class KuiClient implements ClientModInitializer {
     private static KeyBinding openLayoutKey;
 
-    /** The rebindable "edit HUD layout" key. Unbound by default so it never clashes with vanilla. */
+    /** The rebindable "edit HUD layout" key, K by default — unused by vanilla. */
     public static KeyBinding openLayoutKey() {
         return openLayoutKey;
     }
@@ -32,7 +32,9 @@ public class KuiClient implements ClientModInitializer {
         KuiConfig.get();
         LayoutStore.get();
 
-        openLayoutKey = Keys.register(Kui.MOD_ID, "key.kui.hud_layout", GLFW.GLFW_KEY_UNKNOWN);
+        // K is free in vanilla, and the layout editor is the one thing every KUI mod shares, so it
+        // earns a real default rather than making each new user find it in the controls list.
+        openLayoutKey = Keys.register(Kui.MOD_ID, "key.kui.hud_layout", GLFW.GLFW_KEY_K);
 
         HudHook.register(Kui.id("hud"), HudManager::render);
 

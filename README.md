@@ -1,4 +1,6 @@
-# KUI
+# kUI
+
+<img src="src/main/resources/assets/kui/icon.png" width="96" align="right" alt="kUI">
 
 Shared client UI library for the KALPE Minecraft mods.
 
@@ -7,7 +9,7 @@ Each mod used to draw its own HUD through its own Fabric render hook, with its o
 placed on top of each other with nothing to prevent it, and the z-order between two mods was an
 accident of which Fabric API each happened to register with.
 
-KUI replaces all of that with one registry, one render hook and one editor.
+kUI replaces all of that with one registry, one render hook and one editor.
 
 ## What it provides
 
@@ -20,49 +22,70 @@ KUI replaces all of that with one registry, one render hook and one editor.
 | `dev.kui.config` | `KuiConfig` (accent, UI scale, tint) and `LayoutStore` (placements) |
 | `dev.kui.api` | `KuiMod` registration |
 
-## Using it from a mod
+## Integrating kUI
 
-Compile against it. KUI is installed separately, the way Fabric API is, so every mod on a profile
-shares one copy and a KUI fix reaches all of them without re-releasing each mod:
+Five steps. Steps 3 and 4 are the ones people skip and regret, so they are spelled out.
+
+### 1. Depend on it, do not bundle it
+
+kUI is installed separately, the way Fabric API is, so every mod on a profile shares one copy and a
+kUI fix reaches all of them without re-releasing each mod.
 
 ```kotlin
-repositories { mavenLocal() }
+repositories { mavenLocal() }   // or wherever you resolve kui from
 
 dependencies {
-    // No include(): KUI is not bundled. One copy, installed by the user.
+    // No include(). One copy, installed by the user.
     modImplementation("dev.kui:kui:1.1.0+mc${property("minecraft_version")}")
 }
 ```
 
-Declare it in `fabric.mod.json` as a **recommendation**, not a dependency:
+kUI publishes one build per Minecraft version (`1.1.0+mc1.21.8`, `1.1.0+mc1.21.11`), so ask for the
+one matching what you compile against.
+
+### 2. Recommend it in `fabric.mod.json`
 
 ```json
 "recommends": { "kui": ">=1.1.0" }
 ```
 
-`depends` would be simpler, but it hands the failure to Fabric: a missing or outdated KUI stops the
-game before it starts, and the player reads loader output instead of anything you wrote. Under
-`recommends` your mod loads and you decide what to say — see below.
+Not `depends`. `depends` hands the failure to Fabric: a missing or outdated kUI stops the game
+before it starts and the player reads loader output instead of anything you wrote. Under
+`recommends` your mod loads and you decide what to say.
 
-### Surviving without it
+### 3. Copy the two gate files
 
-Because KUI can now genuinely be absent, keep every reference to `dev.kui` in classes you can
-choose not to touch. The JVM resolves a class the first time a method mentioning it runs, so a
-check must live outside the code it guards:
+Take [`templates/KuiGate.java`](templates/KuiGate.java) and
+[`templates/KuiMissingScreen.java`](templates/KuiMissingScreen.java) into your mod and change the
+package. That is the whole job — they need no edits beyond `REQUIRED` and the package line.
+
+They are not part of the kUI jar on purpose: they have to keep working when kUI is the thing that
+is missing. Between them they check presence *and* version, and show one screen listing every mod
+that is waiting on kUI — mods coordinate through a JVM system property, because when the shared
+library is absent there is nothing else they can share.
+
+### 4. Put every `dev.kui` reference behind one class
+
+The JVM resolves a class the first time a method mentioning it runs, so a check living in the same
+class as the code it guards fails before it can report anything:
 
 ```java
+// In your ClientModInitializer:
 if (KuiGate.satisfied()) {
-    MyModKui.register();      // the only class importing dev.kui.*
+    MyModKui.register();                               // the ONLY class importing dev.kui.*
 } else {
-    KuiGate.armNotice();      // vanilla-only screen, no KUI imports anywhere in it
+    KuiGate.armNotice("My Mod", "HUD disabled");       // no dev.kui imports anywhere in this path
 }
 ```
 
-Version matters as much as presence: raise the version your gate requires in the same commit that
-first uses a newly added KUI API, or a player running an older KUI gets a `NoSuchMethodError`
-mid-game rather than a sentence explaining what to update.
+Everything that touches kUI — your `HudElement` subclasses, anything reading `Theme`, any screen
+built on `Draw` — must be reachable only through that branch. If your whole interface is drawn
+through kUI, return from `onInitializeClient` early and register nothing at all.
 
-Write an element:
+Raise `REQUIRED` in the same commit that first uses a newly added kUI API. Otherwise a player on an
+older kUI gets a `NoSuchMethodError` mid-game instead of a sentence telling them what to update.
+
+### 5. Write your elements and register them
 
 ```java
 public class MyElement extends HudElement {
@@ -84,22 +107,60 @@ public class MyElement extends HudElement {
 }
 ```
 
-Register it during client init:
-
 ```java
+// MyModKui.java — the quarantined class from step 4
 KuiMod.of("mymod", "My Mod")
-      .accent(0xFF9B3D)
-      .settings(MySettingsScreen::new)
+      .accent(0xFF9B3D)                    // your identity; the user can override it
+      .settings(MySettingsScreen::new)     // reachable from kUI's own screens
       .element(new MyElement())
       .register();
 ```
 
-That is the whole integration. Do **not** register a HUD render hook — KUI owns the only one, which
-is what makes cross-mod ordering and collision-free stacking possible.
+Do **not** register a HUD render hook. kUI owns the only one, which is what makes cross-mod
+ordering and collision-free stacking possible.
+
+### Theming, for free
+
+Draw with roles rather than hues and your element follows whatever accent the user picked, in every
+mod at once:
+
+| Instead of | Use |
+| --- | --- |
+| a hardcoded colour | `Theme.accent(modId)`, `Theme.TEXT`, `Theme.SUBTEXT`, `Theme.MUTED` |
+| your own panel fill | `panelBg()`, `cardBorder()`, `accentEdge()` on `HudElement` |
+| your own rectangles | `Draw.roundedCard`, `Draw.bar`, `Draw.textCenteredFit` |
+| your own control chrome | `Theme.control()`, `Theme.controlHover()`, `Theme.window()` |
+
+### Keybinds
+
+Register through `Keys` and your binding lands in your own category, on every Minecraft version kUI
+targets:
+
+```java
+Keys.register("mymod", "key.mymod.open", GLFW.GLFW_KEY_J);
+```
+
+Add **both** category keys to your `en_us.json` — the translation key changed in 1.21.11, and a
+missing one shows up in the controls screen as raw `category.mymod`:
+
+```json
+"category.mymod": "My Mod",
+"key.category.mymod.main": "My Mod",
+"key.mymod.open": "Open my thing"
+```
+
+### Checklist
+
+- [ ] `modImplementation`, no `include`
+- [ ] `recommends`, not `depends`
+- [ ] `KuiGate` + `KuiMissingScreen` copied in, `REQUIRED` set
+- [ ] every `dev.kui` reference behind the gate
+- [ ] no HUD render hook of your own
+- [ ] both keybind category keys translated
 
 ## Vanilla HUD elements
 
-KUI also makes vanilla's own HUD arrangeable — hotbar, health, hunger, armour, air, mount health,
+kUI also makes vanilla's own HUD arrangeable — hotbar, health, hunger, armour, air, mount health,
 XP bar and level, held-item name, action bar text, crosshair, title text, subtitles, boss bar,
 status effects, scoreboard, player list and chat. They appear in the editor under a `minecraft`
 group alongside your mods' elements and can be moved, resized and hidden.
@@ -122,7 +183,7 @@ Two consequences worth knowing:
 - The nominal rectangles in `VanillaHud` are only the fallback, used for an element that is drawing
   nothing at all right now (no boss, no sidebar objective) — there is no box to measure, but the
   user still needs somewhere to grab. The editor labels those "not on screen".
-- Vanilla elements cannot be docked into a lane (their position is vanilla's, not KUI's) and cannot
+- Vanilla elements cannot be docked into a lane (their position is vanilla's, not kUI's) and cannot
   be faded (they draw with their own colours). The inspector hides those controls for them.
 
 ## Placement
@@ -139,7 +200,7 @@ Every element has a `Placement` with one of two modes:
 `order` is both the sort key within a lane and the global draw order, so a low-order element from
 one mod really does render behind a high-order element from another.
 
-Placements live in `config/kui/layout.json`, keyed by namespaced element id. KUI deliberately owns
+Placements live in `config/kui/layout.json`, keyed by namespaced element id. kUI deliberately owns
 only presentation state — each mod keeps its own config file for its own settings, so uninstalling
 one mod cannot corrupt another's configuration.
 
@@ -154,8 +215,8 @@ Multi-version via [Stonecutter](https://stonecutter.kikugie.dev), currently targ
 ./gradlew publishAllToMavenLocal   # every target into ~/.m2, for the consuming mods
 ```
 
-The targets here must be a superset of the targets of every mod that depends on KUI, since a mod can
-only bundle a KUI build for the version it is itself compiling against.
+The targets here must be a superset of the targets of every mod that depends on kUI, since a mod can
+only bundle a kUI build for the version it is itself compiling against.
 
 Consuming mods resolve `dev.kui:kui:<version>+mc<minecraft_version>`, so after changing anything in
 this project run `publishAllToMavenLocal` before rebuilding them.
@@ -177,11 +238,11 @@ The APIs that moved between 1.21.8 and 1.21.11 are handled here rather than in e
 
 Copyright © 2026 KALPE. See [LICENSE](LICENSE) — this is **not** an open-source licence.
 
-You may build a mod on KUI, and redistribute KUI unmodified — including **bundled inside your own
+You may build a mod on kUI, and redistribute kUI unmodified — including **bundled inside your own
 mod** (Jar-in-Jar) if you prefer that to asking users to install it — at no cost and with no
 permission needed. The KALPE mods ship it as a separate download instead, but the grant covers
 both, so a mod that would rather bundle it is not blocked.
 
-What is not allowed is publishing a modified KUI, or publishing it under another name or as your
+What is not allowed is publishing a modified kUI, or publishing it under another name or as your
 own work. Patching your own copy privately — to debug, or to prepare a fix to send back here — is
 explicitly fine; distributing that patched copy is not.

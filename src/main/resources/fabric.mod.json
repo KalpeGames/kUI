@@ -9,6 +9,7 @@
 	],
 	"contact": {},
 	"license": "LicenseRef-KUI",
+	"icon": "assets/kui/icon.png",
 	"environment": "client",
 	"entrypoints": {
 		"client": [

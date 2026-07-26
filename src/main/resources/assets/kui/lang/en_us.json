@@ -1,5 +1,6 @@
 {
-	"key.category.kui.main": "KUI",
+	"key.category.kui.main": "kUI",
+	"category.kui": "kUI",
 	"key.kui.hud_layout": "Edit HUD layout",
 
 	"kui.layout.title": "HUD Layout",
