@@ -22,23 +22,45 @@ KUI replaces all of that with one registry, one render hook and one editor.
 
 ## Using it from a mod
 
-Add the dependency and bundle it, so users install nothing extra:
+Compile against it. KUI is installed separately, the way Fabric API is, so every mod on a profile
+shares one copy and a KUI fix reaches all of them without re-releasing each mod:
 
 ```kotlin
 repositories { mavenLocal() }
 
 dependencies {
-    val kui = "dev.kui:kui:1.0.0+mc${property("minecraft_version")}"
-    modImplementation(kui)
-    include(kui)   // JAR-in-JAR; Fabric loads one shared copy across all your mods
+    // No include(): KUI is not bundled. One copy, installed by the user.
+    modImplementation("dev.kui:kui:1.1.0+mc${property("minecraft_version")}")
 }
 ```
 
-Declare it in `fabric.mod.json`:
+Declare it in `fabric.mod.json` as a **recommendation**, not a dependency:
 
 ```json
-"depends": { "kui": ">=1.0.0" }
+"recommends": { "kui": ">=1.1.0" }
 ```
+
+`depends` would be simpler, but it hands the failure to Fabric: a missing or outdated KUI stops the
+game before it starts, and the player reads loader output instead of anything you wrote. Under
+`recommends` your mod loads and you decide what to say — see below.
+
+### Surviving without it
+
+Because KUI can now genuinely be absent, keep every reference to `dev.kui` in classes you can
+choose not to touch. The JVM resolves a class the first time a method mentioning it runs, so a
+check must live outside the code it guards:
+
+```java
+if (KuiGate.satisfied()) {
+    MyModKui.register();      // the only class importing dev.kui.*
+} else {
+    KuiGate.armNotice();      // vanilla-only screen, no KUI imports anywhere in it
+}
+```
+
+Version matters as much as presence: raise the version your gate requires in the same commit that
+first uses a newly added KUI API, or a player running an older KUI gets a `NoSuchMethodError`
+mid-game rather than a sentence explaining what to update.
 
 Write an element:
 
@@ -155,9 +177,10 @@ The APIs that moved between 1.21.8 and 1.21.11 are handled here rather than in e
 
 Copyright © 2026 KALPE. See [LICENSE](LICENSE) — this is **not** an open-source licence.
 
-You may build a mod on KUI and **ship it bundled inside your own mod** (Jar-in-Jar, exactly as the
-integration above does) at no cost and with no permission needed. Bundling is spelled out in the
-grant precisely because that is how KUI is meant to be distributed.
+You may build a mod on KUI, and redistribute KUI unmodified — including **bundled inside your own
+mod** (Jar-in-Jar) if you prefer that to asking users to install it — at no cost and with no
+permission needed. The KALPE mods ship it as a separate download instead, but the grant covers
+both, so a mod that would rather bundle it is not blocked.
 
 What is not allowed is publishing a modified KUI, or publishing it under another name or as your
 own work. Patching your own copy privately — to debug, or to prepare a fix to send back here — is
